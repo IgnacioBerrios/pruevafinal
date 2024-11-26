@@ -1,0 +1,28 @@
+.background {
+    position: relative;
+    text-align: center;
+}
+.background img {
+    width: 100%;
+    height: auto;
+}
+.button-overlay {
+    position: absolute;
+    bottom: 50px; /* Ajusta esta distancia desde el fondo */
+    left: 50%;
+    transform: translateX(-50%);
+}
+.button-overlay button {
+    padding: 15px 32px;
+    font-size: 16px;
+    border-radius: 10px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s ease;
+}
+.button-overlay button:hover {
+    background-color: #45a049;
+}

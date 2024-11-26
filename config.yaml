@@ -1,0 +1,24 @@
+credentials:
+  usernames:
+    usuario1:
+      email: 'vic.penaj@gmail.com'
+      name: 'Vicente Pena'
+      password: '$2b$12$IkZfvc4weLkbAREmmSeEoeShn4dwR8AfoRbS8hmtL3wYOo7QSwFCG'  # Reemplaza con el hash generado
+      roles:
+        - 'admin'
+    usuario2:
+      email: 'ignacioberriosvb@gmail.com'
+      name: 'Ingacio Berrios'
+      password: '$2b$12$xX3lN5c8Oz06zR27fZzeVOPC7YHGrG2kWO48wFYqOyKuaXvSgnrde'  # Reemplaza con el hash generado
+      roles:
+        - 'viewer'
+
+cookie:
+  name: 'mi_app_cookie'
+  key: 'clave_firma_segura'  # Genera una cadena segura con, por ejemplo, secrets.token_hex(16)
+  expiry_days: 30
+
+preauthorized:
+  emails:
+    - 'vic.penaj@gmail.com'
+    - 'ignacioberriosvb@gmail.com'
