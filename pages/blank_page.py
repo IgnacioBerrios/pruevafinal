@@ -1,18 +1,47 @@
 import streamlit as st
-import base64
 import pandas as pd
 import matplotlib.pyplot as plt
 import plotly.express as px
+import base64
+
+# Función para cargar y verificar el dataset
+@st.cache_data
+def cargar_datos():
+    ruta = "spotify_songs_dataset.csv"
+    try:
+        data = pd.read_csv(ruta, delimiter=';')
+        return data
+    except FileNotFoundError:
+        st.error("El archivo 'spotify_songs_dataset.csv' no fue encontrado.")
+        return None
 
 # Cargar el dataset
-pf = pd.read_csv("spotify_songs_dataset.csv")
-image_path = "pages/Necesarios/fondo_morado.png"
+pf = cargar_datos()
 
-# Codificar la imagen en base64
+# Verificar y ajustar columnas
+if pf is not None:
+    st.write("Columnas disponibles en el dataset:", pf.columns.tolist())
+
+    if 'release_date' not in pf.columns:
+        posibles_nombres = ['ReleaseDate', 'releaseDate', 'release_date']
+        for col in posibles_nombres:
+            if col in pf.columns:
+                pf.rename(columns={col: 'release_date'}, inplace=True)
+                break
+
+    if 'release_date' not in pf.columns:
+        st.error("La columna 'release_date' no se encuentra en el dataset.")
+    else:
+        pf['release_date'] = pd.to_datetime(pf['release_date'], errors='coerce')
+        pf = pf.dropna(subset=['release_date'])  # Eliminar filas sin fecha válida
+        pf['year'] = pf['release_date'].dt.year  # Extraer el año
+
+# Codificar la imagen de fondo
+image_path = "pages/Necesarios/fondo_morado.png"
 with open(image_path, "rb") as img_file:
     base64_image = base64.b64encode(img_file.read()).decode()
 
-# Aplicar estilo de fondo a la aplicación
+# Aplicar estilo de fondo
 st.markdown(
     f"""
     <style>
@@ -23,166 +52,99 @@ st.markdown(
         background-repeat: no-repeat;
         color: #f0f0f0;
     }}
-    
-    .stButton > button {{
-        background-color: #6a0dad;
-        color: white;
-        border-radius: 5px;
-        padding: 10px 20px;
-        font-size: 16px;
-        border: none;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        transition: background-color 0.3s ease;
-    }}
-
-    .stButton > button:hover {{
-        background-color: #9b4de1;
-    }}
     </style>
     """,
     unsafe_allow_html=True
 )
 
-# Función para cargar datos con cache
-@st.cache_data
-def datos_cargados():
-    ruta = 'spotify_songs_dataset.csv'
-    data = pd.read_csv(ruta, sep=';')
-    data['release_date'] = pd.to_datetime(data['release_date'], errors='coerce') 
-    return data
-
-# Dataset para nuevos módulos
-data_modulo = datos_cargados()
-data_modulo = data_modulo.dropna(subset=['release_date'])
-data_modulo['year'] = data_modulo['release_date'].dt.year
-
-# Configuración inicial de páginas
+# Navegación entre páginas
 if "page" not in st.session_state:
     st.session_state.page = "inicio"
 
-if "subpage" not in st.session_state:
-    st.session_state.subpage = None
-
-# Funciones para navegación
 def cambiar_pagina(nueva_pagina):
     st.session_state.page = nueva_pagina
-    if nueva_pagina != "categoría_2":
-        st.session_state.subpage = None
-
-def cambiar_subpagina(nueva_subpagina):
-    st.session_state.subpage = nueva_subpagina
-
-# Título de la aplicación
-st.title("Aplicación Genérica")
 
 # Página principal
 if st.session_state.page == "inicio":
-    st.header("Seleccione una opción")
-    col1, col2, col3 = st.columns(3)
-    
+    st.title("Exploración de Canciones de Spotify")
+    col1, col2 = st.columns(2)
     with col1:
-        if st.button("Opción 1"):
-            cambiar_pagina("categoría_1")
+        if st.button("Visualizaciones Generales"):
+            cambiar_pagina("visualizaciones")
     with col2:
-        if st.button("Opción 2"):
-            cambiar_pagina("categoría_2")
-    with col3:
-        if st.button("Opción 3"):
-            cambiar_pagina("categoría_3")
+        if st.button("Análisis por Género"):
+            cambiar_pagina("genero")
 
-# Categoría 1
-elif st.session_state.page == "categoría_1":
-    opciones = ["Todo"] + pf.columns.tolist()
-    seleccion = st.selectbox("Selecciona una columna para ver", opciones)
-
-    if seleccion == "Todo":
-        st.dataframe(pf)
+# Visualizaciones generales
+elif st.session_state.page == "visualizaciones":
+    st.title("Visualizaciones Generales")
+    st.subheader("Distribución de Idiomas")
+    if 'language' not in pf.columns:
+        st.error("La columna 'language' no se encuentra en el dataset.")
     else:
-        st.write(f"Columna seleccionada: {seleccion}")
-        st.write(pf[seleccion])
-    if st.button("Volver atrás"):
-        cambiar_pagina("inicio")
-
-# Categoría 2 y subcategorías
-elif st.session_state.page == "categoría_2":
-    if st.session_state.subpage is None:
-        st.header("Seleccione una subcategoría")
-        if st.button("Gráfico de Contenido Explícito"):
-            cambiar_subpagina("subcategoria_a")
-        if st.button("Distribución de Idioma de Canciones"):
-            cambiar_subpagina("subcategoria_b")
-        if st.button("Tendencia de Lanzamiento de Canciones"):
-            cambiar_subpagina("subcategoria_c")
-        if st.button("Duración Promedio por Género"):
-            cambiar_subpagina("subcategoria_d")
-        if st.button("Reproducciones según Fecha de Publicación"):
-            cambiar_subpagina("subcategoria_e")
-        if st.button("Distribución de Idiomas por Género"):
-            cambiar_subpagina("subcategoria_f")
-        if st.button("Volver atrás"):
-            cambiar_pagina("inicio")
-
-    else:
-        if st.session_state.subpage == "subcategoria_a":
-            st.header("Subcategoría A: Contenido Explícito")
-            contenido_explicito = pf.groupby(['genre', 'explicit_content']).size().unstack(fill_value=0)
-            fig, ax = plt.subplots(figsize=(12, 8))
-            contenido_explicito.plot(kind='bar', stacked=True, ax=ax)
-            ax.set_title('Proporción de Canciones con Contenido Explícito por Género')
-            st.pyplot(fig)
-
-        elif st.session_state.subpage == "subcategoria_b":
-            st.header("Subcategoría B: Distribución de Idioma")
-            contador_lenguaje = pf["language"].value_counts()
-            fig, ax = plt.subplots(figsize=(10, 8))
-            ax.pie(contador_lenguaje, labels=contador_lenguaje.index, autopct='%1.1f%%', startangle=140, colors=plt.cm.tab20.colors)
-            st.pyplot(fig)
-
-        elif st.session_state.subpage == "subcategoria_c":
-            st.header("Subcategoría C: Tendencia de Lanzamiento")
-            pf['release_date'] = pd.to_datetime(pf['release_date'], errors='coerce')
-            pf_filtrado = pf.dropna(subset=['release_date'])
-            pf_filtrado['year'] = pf_filtrado['release_date'].dt.year
-            generos = pf_filtrado['genre'].unique()
-            genero_seleccionado = st.selectbox('Selecciona un género:', options=generos)
-            rango_años = st.slider('Selecciona el rango:', int(pf_filtrado['year'].min()), int(pf_filtrado['year'].max()))
-            releases = pf_filtrado[pf_filtrado['year'].between(rango_años[0], rango_años[1])].groupby('year').size()
-            fig, ax = plt.subplots()
-            ax.plot(releases.index, releases.values)
-            st.pyplot(fig)
-
-        elif st.session_state.subpage == "subcategoria_e":
-            st.header("Reproducciones según Fecha")
-            selected_genre = st.selectbox("Selecciona un género:", options=data_modulo['genre'].dropna().unique())
-            rango_años = st.slider("Selecciona el rango:", int(data_modulo['year'].min()), int(data_modulo['year'].max()))
-            filtered_data = data_modulo[
-                (data_modulo['genre'] == selected_genre) &
-                (data_modulo['year'].between(rango_años[0], rango_años[1]))
-            ]
-            fig = px.scatter(
-                filtered_data, x='release_date', y='stream', color='genre',
-                title=f"Fecha vs Reproducciones ({selected_genre})"
+        selected_genres = st.multiselect(
+            "Selecciona los géneros que deseas analizar:",
+            options=pf['genre'].dropna().unique()
+        )
+        filtered_data = pf[pf['genre'].isin(selected_genres)] if selected_genres else pf
+        if filtered_data.empty:
+            st.warning("No hay datos para los géneros seleccionados.")
+        else:
+            language_counts = filtered_data['language'].dropna().value_counts().reset_index()
+            language_counts.columns = ['language', 'count']
+            fig = px.pie(
+                language_counts,
+                names='language',
+                values='count',
+                title='Distribución de Idiomas',
+                color_discrete_sequence=px.colors.qualitative.Set3
             )
             st.plotly_chart(fig)
+    if st.button("Volver al inicio"):
+        cambiar_pagina("inicio")
 
-        elif st.session_state.subpage == "subcategoria_f":
-            st.header("Distribución de Idiomas por Género")
-            selected_genres = st.multiselect(
-                "Selecciona géneros:", options=data_modulo['genre'].dropna().unique())
-            filtered_data = data_modulo[data_modulo['genre'].isin(selected_genres)] if selected_genres else data_modulo
-            if not filtered_data.empty:
-                language_counts = filtered_data['language'].value_counts().reset_index()
-                language_counts.columns = ['language', 'count']
-                fig = px.pie(
-                    language_counts, names='language', values='count', title="Distribución de Idiomas"
-                )
-                st.plotly_chart(fig)
+# Análisis por género
+elif st.session_state.page == "genero":
+    st.title("Análisis por Género")
+    if 'genre' not in pf.columns or 'stream' not in pf.columns:
+        st.error("Las columnas necesarias no están en el dataset.")
+    else:
+        genres = pf['genre'].dropna().unique()
+        selected_genre = st.selectbox("Selecciona un género:", options=genres)
 
-        if st.button("Volver atrás"):
-            cambiar_subpagina(None)
+        filtered_data = pf[pf['genre'] == selected_genre]
+        min_year = int(filtered_data['year'].min())
+        max_year = int(filtered_data['year'].max())
+        rango_años = st.slider(
+            'Selecciona el rango de años:', min_year, max_year, (min_year, max_year)
+        )
 
-elif st.session_state.page == "categoría_3":
-    st.header("Contenido de Opción 3")
-    st.write("Aquí se mostrarán los datos relacionados con la Opción 3.")
-    if st.button("Volver atrás"):
+        filtered_data = filtered_data[
+            (filtered_data['year'] >= rango_años[0]) & (filtered_data['year'] <= rango_años[1])
+        ]
+
+        color_map = {
+            "R&B": "red", "Electronic": "yellow", "Pop": "blue", "Folk": "green",
+            "Hip-Hop": "purple", "Jazz": "orange", "Classical": "brown",
+            "Country": "skyblue", "Reggae": "white",
+        }
+
+        fig = px.scatter(
+            filtered_data,
+            x='release_date', y='stream', color='genre',
+            color_discrete_map=color_map,
+            title=f"Fecha de Publicación vs Reproducciones ({selected_genre}, {rango_años[0]}-{rango_años[1]})",
+            labels={"release_date": "Fecha de Publicación", "stream": "Reproducciones", "genre": "Género"},
+            template="plotly_white",
+            opacity=0.7
+        )
+
+        fig.update_layout(
+            xaxis=dict(title="Fecha de Publicación"),
+            yaxis=dict(title="Reproducciones"),
+            title_font_size=16,
+        )
+        st.plotly_chart(fig)
+
+    if st.button("Volver al inicio"):
         cambiar_pagina("inicio")
